@@ -11,7 +11,7 @@ float GetIntensity(Mat src)
     for (int x = 0; x < src.cols; x++)
     {
       Vec3b bgr = src.at<Vec3b>(y, x);
-      res += (bgr[0] + bgr[1] + bgr[2])/3;
+      res += (bgr[0] + bgr[1] + bgr[2]);
     }
   res = res / (src.rows * src.cols);
   return res;
@@ -25,7 +25,7 @@ float GetContrast(Mat src)
     for (int x = 0; x < src.cols; x++)
     {
       Vec3b bgr = src.at<Vec3b>(y, x);
-      res += pow((bgr[0] + bgr[1] + bgr[2]) / 3 - M, 2);
+      res += pow((bgr[0] + bgr[1] + bgr[2]) - M, 2);
     }
   res = sqrt(res / (src.rows * src.cols));
   return res;
@@ -36,20 +36,21 @@ float GetCov(Mat src1, Mat src2)
   if (src1.size != src2.size)
     throw 1;
   float res = 0;
+  float M1 = GetIntensity(src1);
+  float M2 = GetIntensity(src2);
   for (int y = 0; y < src1.rows; y++)
     for (int x = 0; x < src1.cols; x++)
     {
       Vec3b bgr1 = src1.at<Vec3b>(y, x);
-      Vec3b bgr2 = src1.at<Vec3b>(y, x);
-      res += (bgr1[0] + bgr1[1] + bgr1[2])*(bgr2[0] + bgr2[1] + bgr2[2])/9;
+      Vec3b bgr2 = src2.at<Vec3b>(y, x);
+      res += (bgr1[0] + bgr1[1] + bgr1[2] - M1)*(bgr2[0] + bgr2[1] + bgr2[2] - M2);
     }
-  res = res / (src1.rows * src1.cols) - GetIntensity(src1)*GetIntensity(src2);
-  return res;
+  return res / (src1.rows * src1.cols);
 }
 
-float SIMMMetric(Mat src1, Mat src2)
+float SSIMMetric(Mat src1, Mat src2)
 {
-  return (2.f * GetIntensity(src1) * GetIntensity(src2) + 655)*(2 * GetCov(src1, src2) + 1966)/((GetIntensity(src1) * GetIntensity(src1) + GetIntensity(src2) * GetIntensity(src2) + 655) * (GetContrast(src1) * GetContrast(src1) + GetContrast(src2) * GetContrast(src2) + 1966));
+  return (2.f * GetIntensity(src1) * GetIntensity(src2))*(2 * GetCov(src1, src2))/((GetIntensity(src1) * GetIntensity(src1) + GetIntensity(src2) * GetIntensity(src2)) * (GetContrast(src1) * GetContrast(src1) + GetContrast(src2) * GetContrast(src2)));
 }
 
 Mat AverageGray(Mat src)
@@ -213,11 +214,12 @@ int main(int argc, char** argv)
     putText(imgs[i], itoa(GetContrast(imgs[i]), string1, 10), Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.5, COLOR_BGR2RGB);
     imshow(names[i], imgs[i]);
   }
+  waitKey();
   for (int i = 0; i < imgs.size(); i++)
   {
     for (int j = i + 1; j < imgs.size(); j++)
     {
-      std::cout << "SIMM for " << names[i] << " and " << names[j] << " = " <<SIMMMetric(imgs[i], imgs[j]) << std::endl;
+      std::cout << "SSIM for " << names[i] << " and " << names[j] << " = " <<SSIMMetric(imgs[i], imgs[j]) << std::endl;
     }
   }
   waitKey();
